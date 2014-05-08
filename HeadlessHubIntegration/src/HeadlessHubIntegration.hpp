@@ -52,6 +52,7 @@ public:
 
 	Q_SLOT void onInvoked(const bb::system::InvokeRequest& request);
 
+    void initialize();
 
 private slots:
 	void processNewMessage(QByteArray message);
@@ -70,6 +71,7 @@ private:
     int  _itemCounter;
     Application* _app;
     InvokeManager* _invokeManager;
+    QMutex _initMutex;
 };
 
 #endif /* HEADLESS_HUB_INTEGRATION_HPP_ */

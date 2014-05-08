@@ -139,7 +139,7 @@
     <invoke-target id="com.example.HubIntegration.card">
        <invoke-target-type>card.previewer</invoke-target-type>
        <invoke-target-name>Hub Integration Card</invoke-target-name>
-       <entry-point-id>HubIntegration</entry-point-id>
+       <entry-point-id>HubIntegrationCard</entry-point-id>
 		<filter>
 			<action>bb.action.VIEW</action>
 		    <action>bb.action.SHARE</action>

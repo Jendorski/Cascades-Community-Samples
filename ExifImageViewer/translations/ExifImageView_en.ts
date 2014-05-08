@@ -4,7 +4,7 @@
 <context>
     <name>main</name>
     <message>
-        <location filename="../assets/main.qml" line="40"/>
+        <location filename="../assets/main.qml" line="55"/>
         <source>select_an_image</source>
         <translation>Select an image</translation>
     </message>

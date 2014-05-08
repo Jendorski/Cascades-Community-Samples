@@ -33,7 +33,7 @@ HubCache::HubCache(QSettings* settings) :
 	qDebug()  << "HubCache::HubCache ";
 
 	_accountId = -1;
-	_lastItemId = -1;
+	_lastItemId = 0;
 }
 
 HubCache::~HubCache() {

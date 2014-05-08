@@ -40,6 +40,7 @@ HeadlessHubIntegration::HeadlessHubIntegration(Application* app) :
 {
 	qDebug() << "HeadlessHubIntegration: HeadlessHubIntegration";
 
+    bool started = false;
 	bool connectResult;
 
 	_invokeManager->setParent(this);
@@ -63,10 +64,12 @@ HeadlessHubIntegration::HeadlessHubIntegration(Application* app) :
 	case ApplicationStartupMode::InvokeCard:
 		qDebug() << "HeadlessHubIntegration: Launching card from invoke";
 		break;
-	// enable when 10.3 beta is released
+    // enable when 10.3 beta is released
     //case ApplicationStartupMode::InvokeHeadless:
-    //    qDebug() << "HeadlessHubIntegration: Launching headless from invoke";
-    //    break;
+    case 4:
+        qDebug() << "HeadlessHubIntegration: Launching headless from invoke";
+        started = true;
+        break;
 	default:
 		qDebug() << "HeadlessHubIntegration: other launch: " << _invokeManager->startupMode();
 		break;
@@ -76,16 +79,9 @@ HeadlessHubIntegration::HeadlessHubIntegration(Application* app) :
     _pushManager = new PushManager(_invokeManager);
 
     // enable when 10.3 beta is released
-    //if (_invokeManager->startupMode() != ApplicationStartupMode::InvokeHeadless) {
-    if (_invokeManager->startupMode() == 4) {
-        // initialize UDS
-        if (!_udsUtil) {
-            _udsUtil = new UDSUtil(QString("exampleHubService"), QString("hubassets"));
-            _udsUtil->initialize();
-            _settings = new QSettings("Example", "Hub Integration");
-            _hubCache = new HubCache(_settings);
-            _testAccount = new TestAccount(_udsUtil, _hubCache);
-        }
+    //if (_invokeManager->startupMode() == ApplicationStartupMode::InvokeHeadless) {
+    if (started) {
+        initialize();
     }
 }
 
@@ -110,21 +106,34 @@ HeadlessHubIntegration::~HeadlessHubIntegration()
     }
 }
 
+void HeadlessHubIntegration::initialize()
+{
+    qDebug() << "HeadlessHubIntegration: initialize: " << (_udsUtil != NULL);
+
+    bool connectResult;
+
+    _initMutex.lock();
+
+    // initialize UDS
+    if (!_udsUtil) {
+        _udsUtil = new UDSUtil(QString("exampleHubService"), QString("hubassets"));
+        _udsUtil->initialize();
+        _settings = new QSettings("Example", "Hub Integration");
+        _hubCache = new HubCache(_settings);
+        _testAccount = new TestAccount(_udsUtil, _hubCache);
+
+       qDebug() << "HeadlessHubIntegration: initialize: initialized " << (_udsUtil != NULL);
+    }
+
+    _initMutex.unlock();
+}
+
 void HeadlessHubIntegration::onInvoked(const bb::system::InvokeRequest& request)
 {
     qDebug() << "HeadlessHubIntegration: onInvoked: HeadlessHubIntegration was invoked";
 
     // Sometimes this method gets invoked before the constructor initializes fully so the following code should handle this scenario.
-    if (!_udsUtil) {
-        _udsUtil = new UDSUtil(QString("exampleHubService"), QString("hubassets"));
-        _settings = new QSettings("Example", "Hub Integration");
-        _hubCache = new HubCache(_settings);
-        _testAccount = new TestAccount(_udsUtil, _hubCache);
-    } else {
-        if (!_udsUtil->initialized()) {
-            _udsUtil->initialize();
-        }
-    }
+    initialize();
 
 	if(request.action().compare("bb.action.system.STARTED") == 0) {
 		qDebug() << "HeadlessHubIntegration: onInvoked: HeadlessHubIntegration : auto started";
