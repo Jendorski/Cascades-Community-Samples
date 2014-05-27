@@ -290,6 +290,7 @@ public:
 									 QString mimetype,int placement);
 
 private:
+    uds_perimeter_type_t _itemPerimeterType;
     uds_context_t _udsHandle;
 
     int _nextAccountId;

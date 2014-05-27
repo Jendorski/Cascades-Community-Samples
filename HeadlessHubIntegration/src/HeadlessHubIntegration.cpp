@@ -110,8 +110,6 @@ void HeadlessHubIntegration::initialize()
 {
     qDebug() << "HeadlessHubIntegration: initialize: " << (_udsUtil != NULL);
 
-    bool connectResult;
-
     _initMutex.lock();
 
     // initialize UDS
@@ -208,7 +206,6 @@ void HeadlessHubIntegration::markHubItemRead(QVariantMap itemProperties)
     qDebug()  << "HeadlessHubIntegration::markHubItemRead: item message Id: " << itemProperties["messageid"].toString();
 
     qint64 itemId;
-    qint64 itemCategoryId;
 
     if (itemProperties["sourceId"].toString().length() > 0) {
         itemId = itemProperties["sourceId"].toLongLong();
@@ -227,7 +224,6 @@ void HeadlessHubIntegration::markHubItemUnread(QVariantMap itemProperties)
     qDebug()  << "HeadlessHubIntegration::markHubItemUnread: item message Id: " << itemProperties["messageid"].toString();
 
     qint64 itemId;
-    qint64 itemCategoryId;
 
     if (itemProperties["sourceId"].toString().length() > 0) {
         itemId = itemProperties["sourceId"].toLongLong();

@@ -42,6 +42,15 @@ UDSUtil::UDSUtil(QString serviceURL, QString hubAssetsFolderName) :
     memset(_assetPath, 0, 256);
     strcpy(_assetPath, tmpPath.toUtf8().data());
     qDebug() << "UDSUtil::UDSUtil: assetPath: " << _assetPath;
+
+    // determine perimeter type for inbox items
+    char *perimeter = getenv("PERIMETER");
+    if (!strcmp(perimeter, "personal")) {
+        _itemPerimeterType = UDS_PERIMETER_PERSONAL;
+    } else
+    if (!strcmp(perimeter, "enterprise")) {
+        _itemPerimeterType = UDS_PERIMETER_ENTERPRISE;
+    }
 }
 
 UDSUtil::~UDSUtil() {
@@ -598,6 +607,7 @@ qint64 UDSUtil::addItem(qint64 accountId, qint64 categoryId, QVariantMap &itemMa
     uds_inbox_item_data_set_timestamp(inbox_item,timestamp);
     uds_inbox_item_data_set_context_state(inbox_item, contextState);
     uds_inbox_item_data_set_notification_state(inbox_item,notify);
+    uds_inbox_item_data_set_perimeter(inbox_item, _itemPerimeterType);
 
     itemMap["accountId"] = accountId;
     itemMap["categoryId"] = categoryId;
