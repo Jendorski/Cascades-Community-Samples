@@ -17,11 +17,12 @@
 #ifndef UDSUTIL_HPP_
 #define UDSUTIL_HPP_
 
-#include <QObject>
 #include <QDateTime>
+#include <QObject>
+#include <QTimer>
 #include <bb/pim/unified/unified_data_source.h>
 #include <bb/pim/account/Account.hpp>
-
+#include <bb/pim/account/Property>
 
 class UDSUtil: public QObject {
     Q_OBJECT
@@ -51,11 +52,18 @@ public:
     void initNextIds();
 
     /*
+     *  Check whether the UDS initialization was performed and was successful.
+     *
+     *  @returns bool true if initialization was performed and successful, false if not
+     */
+    bool initialized();
+
+    /*
      *  Check whether the UDS client registration was performed and was successful.
      *
      *  @returns bool true if registration was performed and successful, false if not
      */
-    bool initialized();
+    bool registered();
 
     /*
      *  Check whether the Hub account needs to be reloaded.
@@ -298,6 +306,7 @@ private:
     int _nextItemId;
 
     bool _async;
+    bool _isInitializationSuccess;
     bool _isRegistrationSuccess;
     bool _reloadHub;
 

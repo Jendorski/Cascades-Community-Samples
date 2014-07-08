@@ -115,10 +115,22 @@ void HeadlessHubIntegration::initialize()
     // initialize UDS
     if (!_udsUtil) {
         _udsUtil = new UDSUtil(QString("exampleHubService"), QString("hubassets"));
+    }
+
+    if (!_udsUtil->initialized()) {
         _udsUtil->initialize();
-        _settings = new QSettings("Example", "Hub Integration");
-        _hubCache = new HubCache(_settings);
-        _testAccount = new TestAccount(_udsUtil, _hubCache);
+    }
+
+    if (_udsUtil->initialized() && _udsUtil->registered()) {
+        if (!_settings) {
+            _settings = new QSettings("Example", "Hub Integration");
+        }
+        if (!_hubCache) {
+            _hubCache = new HubCache(_settings);
+        }
+        if (!_testAccount) {
+            _testAccount = new TestAccount(_udsUtil, _hubCache);
+        }
 
        qDebug() << "HeadlessHubIntegration: initialize: initialized " << (_udsUtil != NULL);
     }

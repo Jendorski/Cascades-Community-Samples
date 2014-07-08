@@ -15,6 +15,7 @@
  */
 
 #include <QDir>
+#include <QThread>
 #include <bb/pim/account/Account.hpp>
 #include <bb/pim/account/AccountService>
 #include <bb/pim/account/Provider>
@@ -25,23 +26,9 @@
 using namespace bb::pim::account;
 
 UDSUtil::UDSUtil(QString serviceURL, QString hubAssetsFolderName) :
-       _nextAccountId(0), _nextCategoryId(0), _nextItemId(0), _async(false), _isRegistrationSuccess(false), _reloadHub(false) {
+       _nextAccountId(0), _nextCategoryId(0), _nextItemId(0), _async(false), _isInitializationSuccess(false), _isRegistrationSuccess(false), _reloadHub(false) {
 
     qDebug() << "UDSUtil::UDSUtil: " << serviceURL << " : " << hubAssetsFolderName;
-
-    memset(_serviceURL, 0, 256);
-    strncpy(_serviceURL, serviceURL.toUtf8().data(), 255);
-
-    // determine absolute path for hub assets
-    QString tmpPath = QDir::current().absoluteFilePath("data");
-    tmpPath = tmpPath.replace("/data", "/public/");
-    tmpPath = tmpPath.append(hubAssetsFolderName);
-    tmpPath = tmpPath.append("/");
-    tmpPath = tmpPath.replace("/accounts/1000/appdata", "/apps");
-
-    memset(_assetPath, 0, 256);
-    strcpy(_assetPath, tmpPath.toUtf8().data());
-    qDebug() << "UDSUtil::UDSUtil: assetPath: " << _assetPath;
 
     // determine perimeter type for inbox items
     char *perimeter = getenv("PERIMETER");
@@ -51,6 +38,25 @@ UDSUtil::UDSUtil(QString serviceURL, QString hubAssetsFolderName) :
     if (!strcmp(perimeter, "enterprise")) {
         _itemPerimeterType = UDS_PERIMETER_ENTERPRISE;
     }
+
+    memset(_serviceURL, 0, 256);
+    strncpy(_serviceURL, serviceURL.toUtf8().data(), 255);
+
+    // determine absolute path for hub assets
+    QString tmpPath = QDir::current().absoluteFilePath("data");
+    tmpPath = tmpPath.replace("/data", "/public/");
+    tmpPath = tmpPath.append(hubAssetsFolderName);
+    tmpPath = tmpPath.append("/");
+    if (!strcmp(perimeter, "personal")) {
+        tmpPath = tmpPath.replace("/accounts/1000/appdata", "/apps");
+    } else
+    if (!strcmp(perimeter, "enterprise")) {
+        tmpPath = tmpPath.replace("/accounts/1000-enterprise/appdata", "/apps-enterprise");
+    }
+
+    memset(_assetPath, 0, 256);
+    strcpy(_assetPath, tmpPath.toUtf8().data());
+    qDebug() << "UDSUtil::UDSUtil: assetPath: " << _assetPath;
 }
 
 UDSUtil::~UDSUtil() {
@@ -59,48 +65,59 @@ UDSUtil::~UDSUtil() {
 void UDSUtil::initialize() {
     const char* libPath = "";
     int retVal = -1;
+    bool retval;
     int serviceId = 0;
     int status = 0;
 
-    if ((retVal = uds_init(&_udsHandle, _async)) == 0) {
-        qDebug() << "UDSUtil::initialize: uds_init: successful\n";
+    if (!_isRegistrationSuccess) {
+        do {
+            retVal = uds_init(&_udsHandle, _async);
+            if (retVal == UDS_SUCCESS) {
+                qDebug() << "UDSUtil::initialize: uds_init: successful\n";
+                _isInitializationSuccess = true;
 
-        if ((retVal = uds_register_client(_udsHandle, _serviceURL, libPath, _assetPath)) != 0) {
-            qCritical() << "UDSUtil::initialize: uds_register_client call failed with error " << retVal;
-        }
+                if ((retVal = uds_register_client(_udsHandle, _serviceURL, libPath, _assetPath)) != 0) {
+                    qCritical() << "UDSUtil::initialize: uds_register_client call failed with error " << retVal;
+                }
 
-        // not sure if this is better than the check below
-        if (retVal == UDS_REGISTRATION_NEW) {
-            _reloadHub = true;
-            qDebug() << "UDSUtil::initialize: uds_register_client call return code indicates Hub reload required.";
-        }
+                // not sure if this is better than the check below
+                if (retVal == UDS_REGISTRATION_NEW) {
+                    _reloadHub = true;
+                    qDebug() << "UDSUtil::initialize: uds_register_client call return code indicates Hub reload required.";
+                }
 
-        retVal = uds_wait_for_response(_udsHandle, 300000);
-        if (_async) {
-            retVal = uds_get_response(_udsHandle);
-            if (retVal == 0) {
-                serviceId = uds_get_service_id(_udsHandle);
-                status = uds_get_service_status(_udsHandle);
+                retval = uds_wait_for_response(_udsHandle, 300000);
+                if (_async) {
+                    retVal = uds_get_response(_udsHandle);
+                    if (retVal == 0) {
+                        serviceId = uds_get_service_id(_udsHandle);
+                        status = uds_get_service_status(_udsHandle);
+                    }
+                } else {
+                    if (retval) {
+                        serviceId = uds_get_service_id(_udsHandle);
+                        status = uds_get_service_status(_udsHandle);
+                    }
+                }
+                qDebug() << "UDSUtil::initialize: uds_register_client call successful with " << serviceId << " as serviceId and " << status << " as status\n";
+                if (retval || retVal == 0)
+                    _isRegistrationSuccess = true;
+
+                if (status == UDS_REGISTRATION_NEW) {
+                    _reloadHub = true;
+                    qDebug() << "UDSUtil::initialize: uds_get_service_status call return code indicates Hub reload required.";
+                }
+
+                initNextIds();
+
+                break;
+            } else if (retVal == UDS_ERROR_TIMEOUT) {
+                qWarning() << "UDSUtil::initialize: uds_init: timed out: retrying shortly ...";
+            } else {
+                qCritical() << "UDSUtil::initialize: uds_init: failed: " << retVal;
+                break;
             }
-        } else {
-            if (retVal == 0) {
-                serviceId = uds_get_service_id(_udsHandle);
-                status = uds_get_service_status(_udsHandle);
-            }
-        }
-        qDebug() << "UDSUtil::initialize: uds_register_client call successful with " << serviceId << " as serviceId and " << status << " as status\n";
-        if (retVal == 0)
-            _isRegistrationSuccess = true;
-
-        if (status == UDS_REGISTRATION_NEW) {
-            _reloadHub = true;
-            qDebug() << "UDSUtil::initialize: uds_get_service_status call return code indicates Hub reload required.";
-        }
-
-        initNextIds();
-    } else {
-        qCritical() << "UDSUtil::initialize: uds_init: failed: " << retVal;
-
+        } while (true);
     }
 }
 
@@ -111,6 +128,10 @@ void UDSUtil::initNextIds() {
 }
 
 bool UDSUtil::initialized() {
+    return _isInitializationSuccess;
+}
+
+bool UDSUtil::registered() {
     return _isRegistrationSuccess;
 }
 
@@ -178,6 +199,10 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
     memset(description, 0, 256);
     strncpy(description, desc.toUtf8().data(), 255);
 
+    if (_itemPerimeterType == UDS_PERIMETER_ENTERPRISE) {
+        displayName.append("-Work");
+    }
+
 	// check for existing account and use that accountID as a starting point
 	QList<Account> allAccounts;
 	do {
@@ -191,10 +216,18 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
 			   //char *accountName = (char *)account.displayName().toUtf8().constData();
 			   qDebug() << "UDSUtil: addAccount: account " << index << " : " << accountName << account.isServiceSupported(Service::Messages) << " : " << account.provider().id();
 
-			   if (account.isServiceSupported(Service::Messages) && account.displayName() == displayName && account.provider().id() == "external") {
-				   _nextAccountId = account.id();
-				   qDebug() << "UDSUtil: addAccount: found existing account " << _nextAccountId;
-			   }
+		       if (_itemPerimeterType == UDS_PERIMETER_ENTERPRISE) {
+		            account.setExternalEnterprise (Property::Enterprise);
+                   if (account.isServiceSupported(Service::Messages) && account.displayName() == displayName && account.provider().id() == "external" && account.isEnterprise() == Property::Enterprise) {
+                       _nextAccountId = account.id();
+                       qDebug() << "UDSUtil: addAccount: found existing account " << _nextAccountId;
+                   }
+		       } else {
+                   if (account.isServiceSupported(Service::Messages) && account.displayName() == displayName && account.provider().id() == "external") {
+                       _nextAccountId = account.id();
+                       qDebug() << "UDSUtil: addAccount: found existing account " << _nextAccountId;
+                   }
+               }
 			}
 		}
 	} while (allAccounts.length() == 0);
@@ -205,6 +238,9 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
 		const Provider provider = accountService.provider(providerId);
 		Account account(provider);
 		account.setExternalData(true);
+		if (_itemPerimeterType == UDS_PERIMETER_ENTERPRISE) {
+		    account.setExternalEnterprise (Property::Enterprise);
+		}
 		account.setSettingsValue("server", serverName);
 		account.setDisplayName(displayName);
 		Result r = accountService.createAccount(provider.id(), account);
@@ -228,7 +264,11 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
 		}else{
 			_nextAccountId = 0;
 		}
+    } else {
+        accountService.updateAccount (act.id(), act);
     }
+
+    qDebug() << "UDSUtil: addAccount: _udsHandle " << _udsHandle;
 
 	// create the UDS account
     uds_account_data_t *accountData = uds_account_data_create();
@@ -1017,4 +1057,3 @@ bool UDSUtil::updateItemAction(qint64 accountId, QString action,
 
     return retval;
 }
-

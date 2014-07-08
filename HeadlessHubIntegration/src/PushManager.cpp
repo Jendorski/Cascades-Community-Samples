@@ -26,6 +26,7 @@ const QString PushManager::BLACKBERRY_PUSH_APPLICATION_ID =
 const QString PushManager::BLACKBERRY_PUSH_URL =
         "http://cp###.pushapi.eval.blackberry.com/";
 
+
 //Update this value as well as the invoke-target id in the bar-descriptor.xml file
 const QString PushManager::BLACKBERRY_INVOKE_TARGET_ID = "com.example.HeadlessHubIntegration";
 
