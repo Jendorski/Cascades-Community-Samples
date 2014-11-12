@@ -39,7 +39,7 @@
 
     <!-- Fourth digit segment of the package version. First three segments are taken from the 
          <versionNumber> element.  Must be an integer from 0 to 2^16-1 -->
-    <buildId>1</buildId>
+    <buildId>6</buildId>
                  
     <!-- A string value (such as "v1", "2.5", or "Alpha 1") that represents the version of the application, as it should be shown to users. Optional. -->
     <!-- <versionLabel></versionLabel> -->
@@ -102,11 +102,11 @@
     
     <!-- Request permission to execute native code.  Required for native applications. -->
     <permission system="true">run_native</permission>
+    <permission>access_shared</permission>
     <env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>
 
     <entryPoint id="HubIntegration">
         <name>Hub Integration</name>
-        <entryPointType>Qnx/Elf</entryPointType>
     </entryPoint>
     
     <entryPoint id="HeadlessHubIntegration">
@@ -139,7 +139,7 @@
     <invoke-target id="com.example.HubIntegration.card">
        <invoke-target-type>card.previewer</invoke-target-type>
        <invoke-target-name>Hub Integration Card</invoke-target-name>
-       <entry-point-id>HubIntegrationCard</entry-point-id>
+       <entry-point-id>HubIntegration</entry-point-id>
 		<filter>
 			<action>bb.action.VIEW</action>
 		    <action>bb.action.SHARE</action>
@@ -155,7 +155,6 @@
     <invoke-target id="com.example.HeadlessHubIntegration">
        <invoke-target-type>application.headless</invoke-target-type>
        <invoke-target-name>Headless Hub Integration</invoke-target-name>
-       <icon><image></image></icon>
        <entry-point-id>HeadlessHubIntegration</entry-point-id>
       <filter>
              <action>bb.action.system.STARTED</action>
