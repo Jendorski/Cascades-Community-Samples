@@ -19,6 +19,7 @@
 #include "HubAccount.hpp"
 
 #include <QDebug>
+#include <QVariantList>
 
 HubAccount::HubAccount(UDSUtil* udsUtil, HubCache* hubCache) : _udsUtil(udsUtil), _hubCache(hubCache)
 {
@@ -60,32 +61,32 @@ void HubAccount::initialize()
 
                 _hubCache->setAccountId(_accountId);
                 _hubCache->setAccountName(_name);
-
-                if (_supportsCompose) {
-                    int retVal = _udsUtil->addAccountAction(_accountId, QString("bb.action.COMPOSE"), QString(tr("Compose")),
-                            _cardTarget, QString("application"), _itemComposeIconFilename, _itemMimeType, UDS_PLACEMENT_BAR);
-                    if (retVal != 0) {
-                        qDebug() << "HubAccount::initialize: addAccountActionData: bb.action.COMPOSE : " << " retval: " << retVal;
-                    }
-                }
-
-                if (_supportsMarkRead) {
-                    retVal = _udsUtil->addItemAction(_accountId, QString("bb.action.MARKREAD"), QString(tr("Mark Read")),
-                            _headlessTarget, QString("application.headless"), _markReadActionIconFilename, _itemMimeType, UDS_PLACEMENT_OVERFLOW);
-                    if (retVal != 0) {
-                        qDebug() << "HubAccount::addHubItem: addItmActionData: addItmAction: bb.action.MARKREAD : " << " retval: " << retVal;
-                    }
-                }
-
-                if (_supportsMarkUnread) {
-                    retVal = _udsUtil->addItemAction(_accountId, QString("bb.action.MARKUNREAD"), QString(tr("Mark Unread")),
-                            _headlessTarget, QString("application.headless"), _markUnreadActionIconFilename, _itemMimeType, UDS_PLACEMENT_OVERFLOW);
-                    if (retVal != 0) {
-                        qDebug() << "HubAccount::addHubItem: addItmActionData: addItmAction: bb.action.MARKUNREAD : " << " retval: " << retVal;
-                    }
-                }
             } else {
                 qDebug() << "HubAccount::initialize: addAccount failed for account name: " << _name << "\n";
+            }
+
+            if (_supportsCompose) {
+                int retVal = _udsUtil->addAccountAction(_accountId, QString("bb.action.COMPOSE"), QString(tr("Compose")),
+                        _cardTarget, QString("application"), _itemComposeIconFilename, _itemMimeType, UDS_PLACEMENT_BAR);
+                if (retVal != 0) {
+                    qDebug() << "HubAccount::initialize: addAccountActionData: bb.action.COMPOSE : " << " retval: " << retVal;
+                }
+            }
+
+            if (_supportsMarkRead) {
+                retVal = _udsUtil->addItemAction(_accountId, QString("bb.action.MARKREAD"), QString(tr("Mark Read")),
+                        _headlessTarget, QString("application.headless"), _markReadActionIconFilename, _itemMimeType, UDS_PLACEMENT_OVERFLOW);
+                if (retVal != 0) {
+                    qDebug() << "HubAccount::addHubItem: addItmActionData: addItmAction: bb.action.MARKREAD : " << " retval: " << retVal;
+                }
+            }
+
+            if (_supportsMarkUnread) {
+                retVal = _udsUtil->addItemAction(_accountId, QString("bb.action.MARKUNREAD"), QString(tr("Mark Unread")),
+                        _headlessTarget, QString("application.headless"), _markUnreadActionIconFilename, _itemMimeType, UDS_PLACEMENT_OVERFLOW);
+                if (retVal != 0) {
+                    qDebug() << "HubAccount::addHubItem: addItmActionData: addItmAction: bb.action.MARKUNREAD : " << " retval: " << retVal;
+                }
             }
         } else {
             QString accountName = _hubCache->accountName();
@@ -101,7 +102,7 @@ void HubAccount::initializeCategories(QVariantList newCategories)
 {
     qDebug()  << "HubAccount::initializeCategories " << _categoriesInitialized;
 
-    if (_accountId > 0 && !_categoriesInitialized) {
+    if (!_categoriesInitialized) {
         qint64 retVal = -1;
 
         if (_hubCache->categories().size() == 0) {
@@ -131,15 +132,9 @@ void HubAccount::initializeCategories(QVariantList newCategories)
 
 bool HubAccount::remove() {
 
-    bool status = true;
+    return _udsUtil->removeAccount(_accountId);
 
-    if (_accountId > 0) {
-        status = _udsUtil->removeAccount(_accountId);
-
-        _accountId = 0;
-    }
-
-    return status;
+    _accountId = 0;
 }
 
 QVariant* HubAccount::getHubItem(qint64 categoryId, qint64 itemId)
@@ -178,6 +173,30 @@ QVariantList HubAccount::items()
     }
 
     return items;
+}
+
+bool HubAccount::addHubCategory(qint64 parentCategoryId, QString name)
+{
+    qint64 retVal = 0;
+
+    qDebug() << "add hub category: " << parentCategoryId << " - " << name;
+
+    QVariantMap category;
+    category["name"] = name;
+    category["parentCategoryId"] = parentCategoryId;
+
+    retVal = _udsUtil->addCategory(_accountId, name, parentCategoryId);
+
+    if (retVal <= 0) {
+        qDebug() << "HubAccount::addHubCategory: addCategory failed for category: " << name << ", account: "<< _accountId << ", retVal: "<< retVal << "\n";
+    } else {
+        QVariantList categories = this->categories();
+        categories << category;
+
+        _hubCache->setCategories(categories);
+    }
+
+    return (retVal > 0);
 }
 
 bool HubAccount::addHubItem(qint64 categoryId, QVariantMap &itemMap, QString name, QString subject, qint64 timestamp, QString itemSyncId,  QString itemUserData, QString itemExtendedData, bool notify)

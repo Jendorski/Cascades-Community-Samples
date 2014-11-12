@@ -30,6 +30,11 @@ UDSUtil::UDSUtil(QString serviceURL, QString hubAssetsFolderName) :
 
     qDebug() << "UDSUtil::UDSUtil: " << serviceURL << " : " << hubAssetsFolderName;
 
+    _async = false;
+    _isInitializationSuccess = false;
+    _isRegistrationSuccess = false;
+    _reloadHub = false;
+
     // determine perimeter type for inbox items
     char *perimeter = getenv("PERIMETER");
     if (!strcmp(perimeter, "personal")) {
@@ -71,46 +76,55 @@ void UDSUtil::initialize() {
 
     if (!_isRegistrationSuccess) {
         do {
-            retVal = uds_init(&_udsHandle, _async);
-            if (retVal == UDS_SUCCESS) {
-                qDebug() << "UDSUtil::initialize: uds_init: successful\n";
-                _isInitializationSuccess = true;
+            if (!_isInitializationSuccess) {
+                retVal = uds_init(&_udsHandle, _async);
+                if (retVal == UDS_SUCCESS) {
+                    qDebug() << "UDSUtil::initialize: uds_init: successful\n";
+                    _isInitializationSuccess = true;
+                }
+            } else {
+                retVal = UDS_SUCCESS; // already initialized ... retrying registration
+            }
 
+            if (retVal == UDS_SUCCESS) {
                 if ((retVal = uds_register_client(_udsHandle, _serviceURL, libPath, _assetPath)) != 0) {
                     qCritical() << "UDSUtil::initialize: uds_register_client call failed with error " << retVal;
                 }
-
-                // not sure if this is better than the check below
-                if (retVal == UDS_REGISTRATION_NEW) {
-                    _reloadHub = true;
-                    qDebug() << "UDSUtil::initialize: uds_register_client call return code indicates Hub reload required.";
-                }
-
-                retval = uds_wait_for_response(_udsHandle, 300000);
-                if (_async) {
-                    retVal = uds_get_response(_udsHandle);
-                    if (retVal == 0) {
-                        serviceId = uds_get_service_id(_udsHandle);
-                        status = uds_get_service_status(_udsHandle);
-                    }
+                if (retVal == UDS_ERROR_TIMEOUT) {
+                    qWarning() << "UDSUtil::initialize: uds_register_client timed out: retrying shortly ...";
                 } else {
-                    if (retval) {
-                        serviceId = uds_get_service_id(_udsHandle);
-                        status = uds_get_service_status(_udsHandle);
+                    // not sure if this is better than the check below
+                    if (retVal == UDS_REGISTRATION_NEW) {
+                        _reloadHub = true;
+                        qDebug() << "UDSUtil::initialize: uds_register_client call return code indicates Hub reload required.";
                     }
+
+                    retval = uds_wait_for_response(_udsHandle, 300000);
+                    if (_async) {
+                        retVal = uds_get_response(_udsHandle);
+                        if (retVal == 0) {
+                            serviceId = uds_get_service_id(_udsHandle);
+                            status = uds_get_service_status(_udsHandle);
+                        }
+                    } else {
+                        if (retval) {
+                            serviceId = uds_get_service_id(_udsHandle);
+                            status = uds_get_service_status(_udsHandle);
+                        }
+                    }
+                    qDebug() << "UDSUtil::initialize: uds_register_client call successful with " << serviceId << " as serviceId and " << status << " as status\n";
+                    if (retval || retVal == 0)
+                        _isRegistrationSuccess = true;
+
+                    if (status == UDS_REGISTRATION_NEW) {
+                        _reloadHub = true;
+                        qDebug() << "UDSUtil::initialize: uds_get_service_status call return code indicates Hub reload required.";
+                    }
+
+                    initNextIds();
+
+                    break;
                 }
-                qDebug() << "UDSUtil::initialize: uds_register_client call successful with " << serviceId << " as serviceId and " << status << " as status\n";
-                if (retval || retVal == 0)
-                    _isRegistrationSuccess = true;
-
-                if (status == UDS_REGISTRATION_NEW) {
-                    _reloadHub = true;
-                    qDebug() << "UDSUtil::initialize: uds_get_service_status call return code indicates Hub reload required.";
-                }
-
-                initNextIds();
-
-                break;
             } else if (retVal == UDS_ERROR_TIMEOUT) {
                 qWarning() << "UDSUtil::initialize: uds_init: timed out: retrying shortly ...";
             } else {

@@ -93,7 +93,22 @@ public Q_SLOTS:
     QVariantList items();
 
     /*
-     * Add a new item in the cache using the provided data.
+     * Add a new category for the Hub account using the provided data.
+     *
+     * @param categoryId - category ID
+     * @param itemMap - item data
+     * @param name - item name
+     * @param subject - item subject
+     * @param timestamp - item timestamp
+     * @param itemSyncId - item syncId
+     * @param itemUserData     - extra data specific to the app that is associated with this item
+     * @param itemExtendedData - extended data that controls special properties of Hub items
+     * @param notify - true if a notification is to be generated, false otherwise
+     */
+    bool addHubCategory(qint64 parentCategoryId, QString name);
+
+    /*
+     * Add a new item for the Hub account using the provided data.
      *
      * @param categoryId - category ID
      * @param itemMap - item data
@@ -108,7 +123,7 @@ public Q_SLOTS:
     bool addHubItem(qint64 categoryId, QVariantMap &itemMap, QString name, QString subject, qint64 timestamp, QString itemSyncId, QString itemUserData, QString itemExtendedData, bool notify);
 
     /*
-     * Updated the specified item in the cache with the provided data.
+     * Updated the specified item in the Hub account / cache with the provided data.
      *
      * @param categoryId - category ID
      * @param itemId - ID of the item to be deleted
@@ -118,7 +133,7 @@ public Q_SLOTS:
     bool updateHubItem(qint64 categoryId, qint64 itemId, QVariantMap &itemMap, bool notify);
 
     /*
-     * Remove the specified item from the cache.
+     * Remove the specified item from the Hub account / cache.
      *
      * @param categoryId - category ID
      * @param itemId - ID of the item to be deleted
@@ -127,7 +142,7 @@ public Q_SLOTS:
 
     // convenience functions for common Hub operations
     /*
-     * Mark the specified item from the cache as read.
+     * Mark the specified item from the Hub account / cache as read.
      *
      * @param categoryId - category ID
      * @param itemId - ID of the item to be marked as read
@@ -135,7 +150,7 @@ public Q_SLOTS:
     bool markHubItemRead(qint64 categoryId, qint64 itemId);
 
     /*
-     * Mark the specified item from the cache as unread.
+     * Mark the specified item from the Hub account / cache as unread.
      *
      * @param categoryId - category ID
      * @param itemId - ID of the item to be marked as unread
@@ -143,7 +158,7 @@ public Q_SLOTS:
     bool markHubItemUnread(qint64 categoryId, qint64 itemId);
 
     /*
-     * Mark the items from the cache, older than the timestamp provided, as read.
+     * Mark the items from the Hub account / cache, older than the timestamp provided, as read.
      *
      * @param categoryId - category ID
      * @param timestamp - timestamp before items are to be marked as read
@@ -151,7 +166,7 @@ public Q_SLOTS:
     void markHubItemsReadBefore(qint64 categoryId, qint64 timestamp);
 
     /*
-     * Delete the items from the cache that are older than the timestamp provided..
+     * Delete the items from the Hub account / cache that are older than the timestamp provided..
      *
      * @param categoryId - category ID
      * @param timestamp - timestamp before items are to be marked as read
@@ -195,8 +210,6 @@ protected:
 
 	QString _markReadActionIconFilename;
 	QString _markUnreadActionIconFilename;
-
-	//QVariantList _categories;
 };
 
 #endif /* HUBACCOUNT_HPP */
