@@ -228,16 +228,16 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
 			   Account account = allAccounts.at(index);
 
 			   //char *accountName = (char *)account.displayName().toUtf8().constData();
-			   qDebug() << "UDSUtil: addAccount: account " << index << " : " << accountName << account.isServiceSupported(Service::Messages) << " : " << account.provider().id();
+			   qDebug() << "UDSUtil: addAccount: check account " << index << " : " << account.displayName() << account.isServiceSupported(Service::Messages) << " : " << account.provider().id();
 
 		       if (_itemPerimeterType == UDS_PERIMETER_ENTERPRISE) {
 		            account.setExternalEnterprise (Property::Enterprise);
-                   if (account.isServiceSupported(Service::Messages) && account.displayName() == displayName && account.provider().id() == "external" && account.isEnterprise() == Property::Enterprise) {
+                   if (account.displayName() == displayName && account.provider().id() == "external" && account.isEnterprise() == Property::Enterprise) {
                        _nextAccountId = account.id();
                        qDebug() << "UDSUtil: addAccount: found existing account " << _nextAccountId;
                    }
 		       } else {
-                   if (account.isServiceSupported(Service::Messages) && account.displayName() == displayName && account.provider().id() == "external") {
+                   if (account.displayName() == displayName && account.provider().id() == "external") {
                        _nextAccountId = account.id();
                        qDebug() << "UDSUtil: addAccount: found existing account " << _nextAccountId;
                    }
@@ -247,7 +247,11 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
 	} while (allAccounts.length() == 0);
 
     // create the message service account
-	if (_nextAccountId == 0) {
+	if (_nextAccountId != 0) {
+	    cleanupAccountsExcept(_nextAccountId, displayName);
+
+        accountService.updateAccount (act.id(), act);
+	} else {
 		QString providerId("external");  // this maps to the filename of the provider's json file
 		const Provider provider = accountService.provider(providerId);
 		Account account(provider);
@@ -278,8 +282,6 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
 		}else{
 			_nextAccountId = 0;
 		}
-    } else {
-        accountService.updateAccount (act.id(), act);
     }
 
     qDebug() << "UDSUtil: addAccount: _udsHandle " << _udsHandle;
@@ -511,7 +513,7 @@ qint64 UDSUtil::addCategory(qint64 accountId, QString name, qint64 parentCategor
         qCritical() << "UDSUtil::addCategory: uds_category_added failed for  " << categoryName << " with error " << retCode << "\n";
         retVal = -1;
     } else {
-        qDebug() << "UDSUtil::addCategory: category: " << name << ": added";
+        qDebug() << "UDSUtil::addCategory: category: " << _nextCategoryId << ":  " << name << ": added";
         retVal = _nextCategoryId;
         _nextCategoryId++;
     }
@@ -678,8 +680,6 @@ qint64 UDSUtil::addItem(qint64 accountId, qint64 categoryId, QVariantMap &itemMa
     itemMap["sourceId"] = sourceId;
     itemMap["userData"] = userData;
     itemMap["extendedData"] = extendedData;
-    itemMap["accountId"] = accountId;
-    itemMap["categoryId"] = categoryId;
 
     if (0 != (retCode = uds_item_added(_udsHandle, inbox_item))) {
         qCritical() << "UDSUtil::addItem: uds_item_added failed for " << name << " with error "<< retCode << "\n";
@@ -767,6 +767,8 @@ bool UDSUtil::updateItem(qint64 accountId, qint64 categoryId, QVariantMap &itemM
     uds_inbox_item_data_set_context_state(inbox_item, contextState);
     uds_inbox_item_data_set_notification_state(inbox_item,notify);
 
+    itemMap["accountId"] =  accountId;
+    itemMap["categoryId"] = categoryId;
     itemMap["name"] = name;
     itemMap["description"] = subject;
     itemMap["mimeType"] = mimeType;
@@ -780,8 +782,6 @@ bool UDSUtil::updateItem(qint64 accountId, qint64 categoryId, QVariantMap &itemM
     itemMap["sourceId"] = sourceId;
     itemMap["userData"] = userData;
     itemMap["extendedData"] = extendedData;
-    itemMap["accountId"] =  accountId;
-    itemMap["categoryId"] = categoryId;
 
     if (0 != (retCode = uds_item_updated(_udsHandle, inbox_item))) {
         qCritical() << "UDSUtil::updateItem: uds_item_updated failed for " << name << " with error " << retCode << "\n";

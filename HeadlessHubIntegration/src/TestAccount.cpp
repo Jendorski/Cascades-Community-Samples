@@ -31,8 +31,8 @@ TestAccount::TestAccount(UDSUtil* udsUtil, HubCache* hubCache) : HubAccount(udsU
     _description = "Test Account";
     _serverName = "ws.test.com";
     _iconFilename = "acc_uncolored.png";
-    _lockedIconFilename = "acc_locked.png";
-    _composeIconFilename = "acc.png";
+    _lockedIconFilename = "acc_locked_uncolored.png";
+    _composeIconFilename = "acc_compose_uncolored.png";
     _supportsCompose = true;
     _supportsMarkRead = true;
     _supportsMarkUnread = true;
@@ -41,7 +41,7 @@ TestAccount::TestAccount(UDSUtil* udsUtil, HubCache* hubCache) : HubAccount(udsU
     _cardTarget = "com.example.HubIntegration.card";
     _itemMimeType = "hub/vnd.test.item";  // mime type for hub items - if you change this, adjust invocation targets
                                             // to match and ensure this is unique for your application or you might invoke the wrong card
-    _itemComposeIconFilename = "compose.png";
+    _itemComposeIconFilename = "acc_compose.png";
     _itemReadIconFilename = "itemRead.png";
     _itemUnreadIconFilename = "itemUnread.png";
     _markReadActionIconFilename = "itemMarkRead.png";
