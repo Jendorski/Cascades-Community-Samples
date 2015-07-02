@@ -67,7 +67,7 @@ void HubAccount::initialize()
 
             if (_supportsCompose) {
                 int retVal = _udsUtil->addAccountAction(_accountId, QString("bb.action.COMPOSE"), QString(tr("Compose")),
-                        _cardTarget, QString("application"), _itemComposeIconFilename, _itemMimeType, UDS_PLACEMENT_BAR);
+                        _cardTarget, QString("application"), _itemComposeIconFilename, _itemMimeType, UDS_PLACEMENT_SIGNATURE);
                 if (retVal != 0) {
                     qDebug() << "HubAccount::initialize: addAccountActionData: bb.action.COMPOSE : " << " retval: " << retVal;
                 }

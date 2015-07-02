@@ -211,7 +211,7 @@ protected:
 
 	QString _iconFilename;
 	QString _lockedIconFilename;
-	QString _composeIconFilename;
+    QString _composeIconFilename;
 
 	bool    _supportsCompose;
 	bool    _supportsMarkRead;
