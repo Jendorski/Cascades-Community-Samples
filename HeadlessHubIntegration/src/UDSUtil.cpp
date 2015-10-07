@@ -766,6 +766,7 @@ bool UDSUtil::updateItem(qint64 accountId, qint64 categoryId, QVariantMap &itemM
     uds_inbox_item_data_set_timestamp(inbox_item,timestamp);
     uds_inbox_item_data_set_context_state(inbox_item, contextState);
     uds_inbox_item_data_set_notification_state(inbox_item,notify);
+    uds_inbox_item_data_set_perimeter(inbox_item, _itemPerimeterType);
 
     itemMap["accountId"] =  accountId;
     itemMap["categoryId"] = categoryId;
